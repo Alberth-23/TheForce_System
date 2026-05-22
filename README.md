@@ -129,6 +129,6 @@
 ---
 
 ## 👤 Desarrollador
-*   **Líder de Proyecto:** Luis
-*   **Entorno:** Desarrollo Profesional Local
-*   **Año:** 2026
+*   **Líder de Proyecto:** Luis Rosales Abad 
+*   **Entorno:** Desarrollo Local
+*   **Mes - Año:** Mayo 2026
