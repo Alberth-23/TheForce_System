@@ -22,7 +22,7 @@
 <div style="background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
     <h3 style="color: #ffffff; margin-top: 0;">1. Pantalla de Carga Animada (Splash Screen)</h3>
     <p style="color: #8b949e;">Muestra el logo de The Force centrado, iluminando la interfaz oscura antes de dar acceso al sistema.</p>
-    <img src="evidencias/Logo_Force.png" alt="Splash Screen" style="width: 100%; max-width: 850px; border-radius: 6px; border: 1px solid #30363d; margin: 15px 0; display: block;">
+    <img src="evidencias/Logo_force.png" alt="Splash Screen" style="width: 100%; max-width: 850px; border-radius: 6px; border: 1px solid #30363d; margin: 15px 0; display: block;">
     <div style="background-color: rgba(88, 166, 255, 0.05); padding: 15px; border-left: 4px solid #58a6ff; border-radius: 4px;">
         <h4 style="color: #58a6ff; margin: 0 0 8px 0; font-size: 14px; text-transform: uppercase;">Análisis Técnico:</h4>
         <ul style="margin: 0; padding-left: 20px; color: #c9d1d9;">
