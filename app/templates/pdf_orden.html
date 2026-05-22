@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #000;
+            line-height: 1.2;
+            font-size: 9px;
+        }
+        .header-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .ruc-box {
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: center;
+            width: 200px;
+        }
+        .ruc-box h2 {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .company-info {
+            font-size: 10px;
+        }
+        .company-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        .data-table {
+            width: 100%;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+        }
+        .data-table td {
+            padding: 4px;
+            border: none;
+        }
+        .label {
+            font-weight: bold;
+            width: 100px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .items-table th {
+            background-color: #eee;
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .items-table td {
+            border: 1px solid #ccc;
+            padding: 6px;
+        }
+        .totals-table {
+            width: 250px;
+            float: right;
+            border-collapse: collapse;
+        }
+        .totals-table td {
+            padding: 4px;
+            border: 1px solid #ccc;
+        }
+        .total-row {
+            background-color: #eee;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 100px;
+            text-align: center;
+            font-size: 8px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <table class="header-table">
+        <tr>
+            <td class="company-info">
+                <div class="company-name">THEFORCE SYSTEM</div>
+                <div>De: LUIS ADMIN</div>
+                <div>Calle Los Mecánicos 123 - Piura - Piura</div>
+                <div>Cel: 987 654 321</div>
+            </td>
+            <td align="right" style="width: 220px;">
+                <div class="ruc-box">
+                    <div>R.U.C. 10456789012</div>
+                    <h2 style="color: #000;">BOLETA DE VENTA ELECTRÓNICA</h2>
+                    <div style="font-size: 14px; font-weight: bold;">{{ orden.numero_orden }}</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Client & Vehicle Data -->
+    <table class="data-table">
+        <tr>
+            <td class="label">Fecha Emisión:</td>
+            <td>{{ orden.fecha_ingreso.strftime('%d/%m/%Y') }}</td>
+            <td class="label">Placa Vehículo:</td>
+            <td style="font-size: 11px; font-weight: bold;">{{ orden.placa_vehiculo }}</td>
+        </tr>
+        <tr>
+            <td class="label">Señor(es):</td>
+            <td colspan="3">{{ orden.cliente.nombre }} {{ orden.cliente.apellido }}</td>
+        </tr>
+        <tr>
+            <td class="label">DNI / RUC:</td>
+            <td>{{ orden.cliente.dni }}</td>
+            <td class="label">Marca/Modelo:</td>
+            <td>{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}</td>
+        </tr>
+        <tr>
+            <td class="label">Cliente/Empresa:</td>
+            <td>{{ orden.cliente.empresa.nombre_empresa if orden.cliente.empresa else 'PARTICULAR' }}</td>
+            <td class="label">KM Actual:</td>
+            <td>{{ orden.kilometraje_actual }} KM</td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+            <td class="label" style="color: #e11d48;">PRÓX. MANT.:</td>
+            <td style="color: #e11d48; font-weight: bold;">{{ orden.proximo_mantenimiento_km or '---' }} KM</td>
+            <td class="label">Tipo Aceite:</td>
+            <td>{{ orden.tipo_aceite }}</td>
+        </tr>
+    </table>
+
+    <!-- Items Table -->
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 40px;">Cant.</th>
+                <th style="width: 40px;">U.M.</th>
+                <th>Descripción</th>
+                <th style="width: 80px;">V. Unitario</th>
+                <th style="width: 80px;">Importe</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Mano de Obra -->
+            {% for item in trabajos %}
+            <tr>
+                <td align="center">1.00</td>
+                <td align="center">NIU</td>
+                <td>{{ item.desc }} (Mano de Obra)</td>
+                <td align="right">{{ "%.2f"|format(item.price) }}</td>
+                <td align="right">{{ "%.2f"|format(item.price) }}</td>
+            </tr>
+            {% endfor %}
+            <!-- Repuestos Manuales -->
+            {% for item in repuestos %}
+            <tr>
+                <td align="center">1.00</td>
+                <td align="center">NIU</td>
+                <td>{{ item.desc }}</td>
+                <td align="right">{{ "%.2f"|format(item.price) }}</td>
+                <td align="right">{{ "%.2f"|format(item.price) }}</td>
+            </tr>
+            {% endfor %}
+            <!-- Repuestos de Inventario -->
+            {% for item in orden.repuestos_lista %}
+            <tr>
+                <td align="center">{{ "%.2f"|format(item.cantidad) }}</td>
+                <td align="center">NIU</td>
+                <td>{{ item.producto.nombre }} {{ item.producto.modelo or '' }}</td>
+                <td align="right">{{ "%.2f"|format(item.precio_unitario) }}</td>
+                <td align="right">{{ "%.2f"|format(item.precio_unitario * item.cantidad) }}</td>
+            </tr>
+            {% endfor %}
+            {% if not trabajos and not repuestos %}
+            <tr>
+                <td colspan="5" align="center" style="padding: 20px;">SERVICIO TÉCNICO GENERAL</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- Totals Section -->
+    <table style="width: 100%; border: none; margin-top: 20px;">
+        <tr>
+            <td style="width: 60%; border: none; vertical-align: top;">
+                <p><strong>Observación:</strong> {{ orden.tipo_trabajo }} - Pago vía {{ orden.metodo_pago or 'Pendiente' }}</p>
+                <p style="margin-top: 10px;">Consulte su documento en: <strong>www.theforcesystem.com</strong></p>
+            </td>
+            <td style="width: 40%; border: none;">
+                <table class="totals-table" style="width: 100%;">
+                    <tr>
+                        <td style="width: 60%;">Op. Gravadas:</td>
+                        <td align="right">S/ {{ "%.2f"|format(subtotal) }}</td>
+                    </tr>
+                    <tr>
+                        <td>I.G.V. (18%):</td>
+                        <td align="right">S/ {{ "%.2f"|format(igv) }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>Importe Total:</td>
+                        <td align="right">S/ {{ "%.2f"|format(orden.total_pagar) }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+
+    <div class="footer">
+        <p>Representación impresa de la BOLETA DE VENTA ELECTRÓNICA</p>
+        <p>Consulte su documento en: <strong>www.theforcesystem.com</strong></p>
+    </div>
+</body>
+</html>

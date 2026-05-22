@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Orden - TheForce System{% endblock %}
+
+{% block content %}
+<div class="glass border border-slate-700/50 p-8 rounded-3xl shadow-2xl">
+    <header class="mb-10 text-center">
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Nueva Orden de Trabajo</h1>
+        <p class="text-slate-400 mt-2">Complete los detalles para registrar el ingreso al taller</p>
+    </header>
+
+    {% if success_msg %}
+    <div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/50 rounded-xl text-emerald-400 text-center animate-pulse">
+        {{ success_msg }}
+    </div>
+    {% endif %}
+
+    <form action="/registrar_orden" method="post" class="space-y-8">
+        <!-- Sección: Datos del Cliente -->
+        <section>
+            <h2 class="text-xl font-semibold mb-4 flex items-center text-blue-400">
+                <span class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center mr-3 text-sm">01</span>
+                Datos del Cliente
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-medium text-slate-400 mb-1">DNI</label>
+                    <input type="text" name="dni" placeholder="Ej. 70654321" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                </div>
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Nombre</label>
+                    <input type="text" name="nombre" placeholder="Nombre" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                </div>
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Apellido</label>
+                    <input type="text" name="apellido" placeholder="Apellido" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                </div>
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Celular</label>
+                    <input type="text" name="celular" placeholder="987654321" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white">
+                </div>
+                <div class="md:col-span-2 flex items-end space-x-4">
+                    <div class="flex items-center h-12">
+                        <input type="checkbox" id="novaflat" name="es_novaflat" onchange="toggleNovaflat()" class="w-5 h-5 rounded border-slate-700 bg-slate-800 text-blue-500 focus:ring-blue-500/50">
+                        <label for="novaflat" class="ml-2 text-slate-300 cursor-pointer">¿Es corporativo / Novaflat?</label>
+                    </div>
+                    <div id="cip_container" class="hidden flex-1">
+                        <label class="block text-sm font-medium text-blue-400 mb-1">CIP</label>
+                        <input type="text" id="cip" name="cip" placeholder="Número de CIP" class="w-full bg-blue-900/20 border border-blue-500/50 rounded-xl p-3 outline-none focus:border-blue-400 transition text-white">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: Datos del Vehículo -->
+        <section>
+            <h2 class="text-xl font-semibold mb-4 flex items-center text-indigo-400">
+                <span class="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center mr-3 text-sm">02</span>
+                Datos del Vehículo
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Placa</label>
+                    <input type="text" name="placa" placeholder="ABC-123" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Marca</label>
+                    <input type="text" name="marca" placeholder="Honda" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Modelo</label>
+                    <input type="text" name="modelo" placeholder="CB190R" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Color</label>
+                    <input type="text" name="color" placeholder="Negro" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white">
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: Detalles del Servicio -->
+        <section>
+            <h2 class="text-xl font-semibold mb-4 flex items-center text-emerald-400">
+                <span class="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center mr-3 text-sm">03</span>
+                Detalles del Servicio
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">KM Actual</label>
+                    <input type="number" name="km_actual" placeholder="0" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Tipo de Trabajo</label>
+                    <select name="tipo_trabajo" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                        <option value="Mantenimiento preventivo">Mantenimiento preventivo</option>
+                        <option value="Inspeccion">Inspeccion</option>
+                        <option value="Reparacion">Reparacion</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Tipo de Aceite</label>
+                    <select name="tipo_aceite" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white" required>
+                        <option value="Lubripowe 20W-50">Lubripowe 20W-50</option>
+                        <option value="SEMI-SINTETICO 10W-30">SEMI-SINTETICO 10W-30</option>
+                        <option value="SINTETICO 10W-30">SINTETICO 10W-30</option>
+                    </select>
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Requerimientos del Cliente</label>
+                    <textarea name="requerimientos" rows="2" placeholder="Describa el problema o solicitud..." class="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 input-focus outline-none transition text-white"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <div class="flex items-center justify-end pt-6 border-t border-slate-700/50">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-blue-900/20 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                Registrar Orden
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementsByName('dni')[0].addEventListener('blur', async function() {
+        const dni = this.value;
+        if (dni.length === 8) {
+            const res = await fetch(`/api/buscar_dni/${dni}`);
+            const result = await res.json();
+            if (result.success) {
+                document.getElementsByName('nombre')[0].value = result.data.nombre;
+                document.getElementsByName('apellido')[0].value = result.data.apellido;
+            }
+        }
+    });
+
+    function toggleNovaflat() {
+        const container = document.getElementById('cip_container');
+        const isChecked = document.getElementById('novaflat').checked;
+        container.classList.toggle('hidden', !isChecked);
+        if (!isChecked) document.getElementById('cip').value = '';
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Órdenes - TheForce System{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex justify-between items-center">
+    <div>
+        <h1 class="text-3xl font-bold text-blue-400">Historial de Órdenes</h1>
+        <p class="text-slate-400">Listado general de servicios registrados</p>
+    </div>
+    <a href="/nueva_orden" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-xl transition shadow-lg shadow-blue-900/20">
+        + Nueva Orden
+    </a>
+</header>
+
+<div class="glass border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="bg-slate-800/50 border-b border-slate-700">
+                <th class="p-4 font-semibold text-slate-300">N° Orden</th>
+                <th class="p-4 font-semibold text-slate-300">Fecha</th>
+                <th class="p-4 font-semibold text-slate-300">Cliente</th>
+                <th class="p-4 font-semibold text-slate-300">Placa</th>
+                <th class="p-4 font-semibold text-slate-300">Tipo Trabajo</th>
+                <th class="p-4 font-semibold text-rose-400">Próx. Mant.</th>
+                <th class="p-4 font-semibold text-slate-300">Estado</th>
+                <th class="p-4 font-semibold text-slate-300">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700/50">
+            {% for orden in ordenes %}
+            <tr class="hover:bg-slate-700/30 transition">
+                <td class="p-4 font-mono text-blue-400">
+                    <a href="/ordenes/{{ orden.numero_orden }}" class="hover:underline font-bold">{{ orden.numero_orden }}</a>
+                </td>
+
+                <td class="p-4 text-slate-400 text-sm">{{ orden.fecha_ingreso.strftime('%d/%m/%Y %H:%M') if orden.fecha_ingreso else '-' }}</td>
+                <td class="p-4 font-medium">{{ orden.cliente.nombre }} {{ orden.cliente.apellido }}</td>
+                <td class="p-4 text-indigo-400 font-bold">{{ orden.placa_vehiculo }}</td>
+
+                <td class="p-4"><span class="px-2 py-1 bg-slate-800 rounded text-xs text-white">{{ orden.tipo_trabajo }}</span></td>
+                <td class="p-4 font-mono text-rose-500 font-bold">
+                    {{ orden.proximo_mantenimiento_km or '-' }} <span class="text-[10px] text-slate-600">KM</span>
+                </td>
+                <td class="p-4">
+                    {% if orden.entregada %}
+                    <span class="text-emerald-400 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293l-4 4a1 1 0 01-1.414 0l-2-2a1 1 0 111.414-1.414L9 10.586l3.293-3.293a1 1 0 011.414 1.414z"></path></svg>
+                        Entregado
+                    </span>
+                    {% else %}
+                    <span class="text-amber-400 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path></svg>
+                        En Proceso
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="p-4 flex space-x-2">
+                    <a href="/ordenes/{{ orden.numero_orden }}" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded-lg border border-slate-600/50 transition text-sm font-semibold">
+                        Gestionar
+                    </a>
+                    {% if not orden.entregada %}
+                    <button onclick="darSalida('{{ orden.numero_orden }}')" class="bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/30 transition text-sm font-semibold">
+                        Dar Salida
+                    </button>
+                    {% else %}
+                    <button onclick="revertirEntrega('{{ orden.numero_orden }}')" class="bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 px-3 py-1 rounded-lg border border-rose-500/30 transition text-sm font-semibold">
+                        Revertir
+                    </button>
+                    {% endif %}
+                </td>
+
+            </tr>
+            {% endfor %}
+            {% if not ordenes %}
+            <tr>
+                <td colspan="8" class="p-8 text-center text-slate-500 italic">No hay órdenes registradas.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    async function darSalida(numOrden) {
+        const nombre = prompt("¿Quién recoge la moto? (Opcional)");
+        if (nombre === null) return; // Cancelado
+
+        const formData = new FormData();
+        formData.append('nombre_recoge', nombre);
+
+        const res = await fetch(`/entregar_orden/${numOrden}`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert("Error al procesar la salida");
+        }
+    }
+
+    async function revertirEntrega(numOrden) {
+        if (!confirm("¿Seguro que quieres poner esta moto de nuevo en taller (Internar)?")) return;
+
+        const res = await fetch(`/revertir_entrega/${numOrden}`, {
+            method: 'POST'
+        });
+
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert("Error al revertir el estado");
+        }
+    }
+</script>
+
+{% endblock %}
+

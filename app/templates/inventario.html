@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Inventario - THE FORCE{% endblock %}
+
+{% block content %}
+<header class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <h1 class="text-4xl font-bold text-white uppercase tracking-tighter">Inventario <span class="text-blue-500">THE FORCE</span></h1>
+        <p class="text-slate-400 mt-1">Control de Stock y Almacén</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+        <a href="/inventario/movimientos" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-2xl border border-slate-700 transition flex items-center">
+            <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Ver Historial de Movimientos
+        </a>
+        <button onclick="document.getElementById('modal_nuevo').classList.remove('hidden')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-2xl border border-slate-700 transition flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            Nuevo Item
+        </button>
+        <button onclick="openGlobalMovimiento('entrada')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition transform active:scale-95 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg>
+            Entrada
+        </button>
+        <button onclick="openGlobalMovimiento('salida')" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition transform active:scale-95 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
+            Salida
+        </button>
+    </div>
+</header>
+
+{% if request.query_params.get('error') == 'stock_insuficiente' %}
+<div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/50 rounded-2xl text-rose-400 text-center font-bold shadow-lg">
+    ❌ Error: Stock insuficiente en el almacén para completar esta salida.
+</div>
+{% endif %}
+
+<div class="glass border border-slate-700/50 rounded-3xl overflow-hidden shadow-2xl">
+    <div class="p-6 border-b border-slate-700/50 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-800/30">
+        <h3 class="text-xl font-bold text-white flex items-center">
+            <svg class="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+            EXISTENCIAS EN TIENDA
+        </h3>
+        <div class="relative w-full md:w-96">
+            <input type="text" id="busqueda" onkeyup="filtrarTabla()" placeholder="Buscar repuesto por nombre o modelo..." class="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-white outline-none focus:border-blue-500 transition">
+            <svg class="w-5 h-5 text-slate-500 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left" id="tabla_productos">
+            <thead>
+                <tr class="bg-slate-800/50 text-slate-400 text-[10px] uppercase tracking-widest">
+                    <th class="px-8 py-5">Item / Repuesto</th>
+                    <th class="px-8 py-5">Detalle / Aplicación</th>
+                    <th class="px-8 py-5">Categoría</th>
+                    <th class="px-8 py-5 text-center">Stock</th>
+                    <th class="px-8 py-5 text-right">P. Venta</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-700/50">
+                {% for p in productos %}
+                <tr class="hover:bg-slate-700/20 transition">
+                    <td class="px-8 py-5">
+                        <div class="font-bold text-white text-base">{{ p.nombre }}</div>
+                    </td>
+                    <td class="px-8 py-5">
+                        <div class="text-sm text-slate-300">{{ p.modelo or '-' }}</div>
+                        <div class="text-[10px] text-slate-500 uppercase">{{ p.aplicacion or '-' }}</div>
+                    </td>
+                    <td class="px-8 py-5">
+                        <span class="px-3 py-1 {{ 'bg-rose-500/10 text-rose-500 border-rose-500/20' if p.marca_tipo == 'Honda' else 'bg-blue-500/10 text-blue-400 border-blue-500/20' }} text-[10px] font-bold rounded-full border">
+                            {{ p.marca_tipo|upper }}
+                        </span>
+                        {% if p.es_novaflat %}
+                        <span class="ml-1 px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold rounded-full border border-emerald-500/20">NOVAFLAT</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-8 py-5 text-center">
+                        <div class="text-2xl font-black {{ 'text-rose-500 animate-pulse' if p.stock < 5 else 'text-white' }}">{{ p.stock }}</div>
+                    </td>
+                    <td class="px-8 py-5 text-right font-mono text-blue-400 font-bold text-lg">S/ {{ "%.2f"|format(p.precio_venta or 0) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Registro Movimiento -->
+<div id="modal_global_mov" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="glass border border-slate-700/50 max-w-md w-full p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200">
+        <div class="flex justify-between items-center mb-6">
+            <h2 id="global_mov_titulo" class="text-2xl font-bold text-white">Registrar Movimiento</h2>
+            <button onclick="closeGlobalModal()" class="text-slate-500 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <form action="/inventario/movimiento" method="post" class="space-y-4">
+            <input type="hidden" name="tipo" id="global_mov_tipo">
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Seleccionar Repuesto</label>
+                <input type="text" list="lista_productos" id="busqueda_producto" placeholder="Escriba para buscar..." class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500" required>
+                <input type="hidden" name="producto_id" id="global_producto_id">
+                <datalist id="lista_productos">
+                    {% for p in productos %}
+                    <option data-id="{{ p.id }}" data-novaflat="{{ '1' if p.es_novaflat else '0' }}" value="{{ p.nombre }} | {{ p.modelo or '' }}"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Fecha</label>
+                    <input type="date" name="fecha_mov" value="{{ now_date }}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Cantidad</label>
+                    <input type="number" name="cantidad" min="1" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500" required>
+                </div>
+            </div>
+
+            <div id="global_extradata_salida" class="hidden space-y-4 pt-4 border-t border-slate-700/50">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Placa / Unidad</label>
+                        <input type="text" name="placa_vehiculo" placeholder="ABC-123" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500">
+                    </div>
+                    <div id="global_container_orden">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">N° Orden</label>
+                        <input type="text" name="numero_orden" placeholder="ORD-001" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" id="global_mov_btn" class="w-full py-4 rounded-xl font-bold text-white shadow-lg transition mt-4 uppercase">
+                Confirmar Registro
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Nuevo Producto -->
+<div id="modal_nuevo" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass border border-slate-700/50 max-w-xl w-full p-8 rounded-3xl shadow-2xl">
+        <h2 class="text-2xl font-bold text-white mb-6">Nuevo Item de Inventario</h2>
+        <form action="/inventario/registrar" method="post" class="grid grid-cols-2 gap-4">
+            <div class="col-span-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre del Producto</label>
+                <input type="text" name="nombre" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Modelo / Código</label>
+                <input type="text" name="modelo" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Aplicación</label>
+                <input type="text" name="aplicacion" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Marca / Marca Tipo</label>
+                <select name="marca_tipo" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500">
+                    <option value="Honda">Honda</option>
+                    <option value="Alternativo">Alternativo</option>
+                </select>
+            </div>
+            <div class="flex items-center pt-5">
+                <input type="checkbox" name="es_novaflat" id="c_novaflat" value="true" class="w-5 h-5 rounded border-slate-700 bg-slate-800 text-blue-500">
+                <label for="c_novaflat" class="ml-2 text-sm text-slate-300 font-bold">Exclusivo Novaflat</label>
+            </div>
+            <div class="col-span-2 grid grid-cols-2 gap-4 border-t border-slate-700/50 pt-4 mt-2">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">P. Compra</label>
+                    <input type="number" step="0.01" name="precio_compra" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">P. Venta Público</label>
+                    <input type="number" step="0.01" name="precio_venta" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <div class="col-span-2 flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="document.getElementById('modal_nuevo').classList.add('hidden')" class="px-6 py-3 text-slate-400 font-bold hover:text-white transition">Cancelar</button>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl transition shadow-lg">Guardar Producto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('busqueda_producto').addEventListener('input', function() {
+        const val = this.value;
+        const opts = document.getElementById('lista_productos').childNodes;
+        const containerOrden = document.getElementById('global_container_orden');
+        
+        for (let i = 0; i < opts.length; i++) {
+            if (opts[i].value === val) {
+                document.getElementById('global_producto_id').value = opts[i].dataset.id;
+                if (document.getElementById('global_mov_tipo').value === 'salida') {
+                    containerOrden.classList.toggle('hidden', opts[i].dataset.novaflat === '1');
+                }
+                break;
+            }
+        }
+    });
+
+    function openGlobalMovimiento(tipo) {
+        document.getElementById('global_mov_tipo').value = tipo;
+        document.getElementById('global_mov_titulo').innerText = tipo === 'entrada' ? 'ENTRADA DE STOCK' : 'SALIDA DE STOCK';
+        
+        const extra = document.getElementById('global_extradata_salida');
+        const btn = document.getElementById('global_mov_btn');
+        
+        document.getElementById('busqueda_producto').value = '';
+        document.getElementById('global_producto_id').value = '';
+
+        if (tipo === 'entrada') {
+            extra.classList.add('hidden');
+            btn.className = 'w-full py-4 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-white shadow-lg transition mt-4';
+        } else {
+            extra.classList.remove('hidden');
+            btn.className = 'w-full py-4 bg-rose-600 hover:bg-rose-500 rounded-xl font-bold text-white shadow-lg transition mt-4';
+        }
+        document.getElementById('modal_global_mov').classList.remove('hidden');
+    }
+
+    function closeGlobalModal() {
+        document.getElementById('modal_global_mov').classList.add('hidden');
+    }
+
+    function filtrarTabla() {
+        const filter = document.getElementById('busqueda').value.toUpperCase();
+        const tr = document.querySelectorAll('#tabla_productos tbody tr');
+        tr.forEach(row => {
+            row.style.display = row.innerText.toUpperCase().includes(filter) ? "" : "none";
+        });
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('[id^="modal_"]').forEach(m => m.classList.add('hidden'));
+        }
+    });
+</script>
+{% endblock %}

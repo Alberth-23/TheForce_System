@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Orden {{ orden.numero_orden }} - Gestión Avanzada{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+        <a href="/ordenes" class="p-2 bg-slate-800 rounded-xl text-slate-400 hover:text-white transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                </path>
+            </svg>
+        </a>
+        <div>
+            <h1 class="text-3xl font-bold text-white uppercase">Orden: {{ orden.numero_orden }}</h1>
+            <p class="text-slate-400">Liquidación y Control de Repuestos</p>
+        </div>
+    </div>
+    <div class="flex items-center space-x-3">
+        <a href="/ordenes/{{ orden.numero_orden }}/pdf" target="_blank"
+            class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-6 rounded-xl border border-slate-600 transition flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+            </svg>
+            Imprimir Boleta
+        </a>
+        <button onclick="saveOrder()"
+            class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg transition transform active:scale-95">
+            Guardar Cambios
+        </button>
+    </div>
+</header>
+
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+    <!-- Columna Izquierda: Resumen -->
+    <div class="lg:col-span-1 space-y-6">
+        <div class="glass border border-slate-700/50 p-6 rounded-2xl">
+            <h2 class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Cliente / Empresa</h2>
+            <p class="text-white font-bold text-lg">{{ orden.cliente.nombre }} {{ orden.cliente.apellido }}</p>
+            <p class="text-slate-500 text-sm">DNI: {{ orden.cliente.dni }}</p>
+            {% if orden.cliente.empresa %}
+            <div class="mt-3 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <p class="text-[10px] text-emerald-500 font-bold uppercase">Empresa Vinculada</p>
+                <p class="text-xs text-emerald-400 font-medium">{{ orden.cliente.empresa.nombre_empresa }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="glass border border-slate-700/50 p-6 rounded-2xl">
+            <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4">Vehículo</h2>
+            <p class="text-indigo-400 font-black text-xl tracking-widest">{{ orden.placa_vehiculo }}</p>
+            <p class="text-white text-sm mt-1">{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}</p>
+            <div class="mt-4 flex items-center justify-between">
+                <div class="flex items-center text-slate-500">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    <span class="text-xs font-mono">{{ orden.kilometraje_actual }} KM</span>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-slate-700/50">
+                <label class="block text-[10px] font-bold text-rose-500 uppercase mb-2 tracking-widest">Próx. Mantenimiento (KM)</label>
+                <input type="number" id="proximo_mantenimiento" value="{{ orden.proximo_mantenimiento_km or '' }}" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white outline-none focus:border-rose-500 transition" placeholder="Ej. 5000">
+            </div>
+        </div>
+
+        <!-- Total Box -->
+        <div class="p-8 bg-gradient-to-br from-slate-800 to-slate-950 border border-slate-700 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl"></div>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Total a Pagar</p>
+            <h3 class="text-4xl font-black text-white mt-2 flex items-baseline">
+                <span class="text-lg font-bold text-blue-500 mr-2">S/</span>
+                <span id="total_general">{{ "%.2f"|format(orden.total_pagar) }}</span>
+            </h3>
+
+            <div class="mt-6">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Forma de Pago</label>
+                <select id="metodo_pago"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white outline-none focus:border-blue-500 transition">
+                    <option value="" class="text-slate-900">Elegir...</option>
+                    <option value="Efectivo" {% if orden.metodo_pago=='Efectivo' %}selected{% endif %}>Efectivo</option>
+                    <option value="Yape/Plin" {% if orden.metodo_pago=='Yape/Plin' %}selected{% endif %}>Yape / Plin</option>
+                    <option value="Transferencia" {% if orden.metodo_pago=='Transferencia' %}selected{% endif %}>Transferencia</option>
+                    <option value="Tarjeta" {% if orden.metodo_pago=='Tarjeta' %}selected{% endif %}>Tarjeta</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna Derecha: Tablas -->
+    <div class="lg:col-span-3 space-y-8">
+
+        <!-- 1. Repuestos del INVENTARIO (NUEVO) -->
+        <div class="glass border border-emerald-500/30 rounded-3xl overflow-hidden shadow-lg">
+            <div class="bg-emerald-500/10 p-5 border-b border-emerald-500/20 flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="p-2 bg-emerald-500 rounded-lg mr-3">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-lg leading-tight">Repuestos del Inventario</h3>
+                        <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Sincronización Automática de Stock</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('modal_add_repuesto').classList.remove('hidden')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-4 rounded-xl transition shadow-lg">+ Vincular Repuesto</button>
+            </div>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-700/50">
+                        <th class="p-4">Producto</th>
+                        <th class="p-4">Modelo / Marca</th>
+                        <th class="p-4 text-center">Cant.</th>
+                        <th class="p-4 text-right">Precio Unit.</th>
+                        <th class="p-4 text-right">Subtotal</th>
+                        <th class="p-4 w-10"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/30">
+                    {% for item in orden.repuestos_lista %}
+                    <tr class="hover:bg-emerald-500/5 transition group">
+                        <td class="p-4 font-bold text-white">{{ item.producto.nombre }}</td>
+                        <td class="p-4 text-xs text-slate-400">{{ item.producto.modelo or '-' }} | {{ item.producto.marca_tipo }}</td>
+                        <td class="p-4 text-center font-black text-emerald-400">{{ item.cantidad }}</td>
+                        <td class="p-4 text-right font-mono text-slate-300">S/ {{ "%.2f"|format(item.precio_unitario) }}</td>
+                        <td class="p-4 text-right font-mono text-white font-bold">S/ {{ "%.2f"|format(item.precio_unitario * item.cantidad) }}</td>
+                        <td class="p-4 text-center">
+                            <form action="/ordenes/{{ orden.numero_orden }}/eliminar_repuesto/{{ item.id }}" method="post">
+                                <button type="submit" class="text-slate-700 hover:text-rose-500 transition p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not orden.repuestos_lista %}
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-600 italic text-sm">No hay repuestos vinculados del inventario.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. Mano de Obra (Excel Style) -->
+        <div class="glass border border-slate-700/50 rounded-3xl overflow-hidden shadow-lg">
+            <div class="bg-slate-800/50 p-5 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="font-bold text-white text-lg flex items-center">
+                    <svg class="w-5 h-5 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Mano de Obra y Servicios
+                </h3>
+                <button onclick="addRow('tabla_mo')" class="text-[10px] bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 py-1.5 rounded-lg border border-slate-600 transition uppercase tracking-widest">+ Añadir Fila</button>
+            </div>
+            <table class="w-full text-left" id="tabla_mo">
+                <thead>
+                    <tr class="text-[10px] text-slate-500 border-b border-slate-700/50 uppercase tracking-widest">
+                        <th class="p-4 w-12 text-center">#</th>
+                        <th class="p-4">Descripción del Trabajo</th>
+                        <th class="p-4 w-40 text-right">Monto (S/.)</th>
+                        <th class="p-4 w-10"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/30"></tbody>
+            </table>
+        </div>
+
+        <!-- 3. Otros Repuestos (Manual) -->
+        <div class="glass border border-slate-700/50 rounded-3xl overflow-hidden shadow-lg opacity-80">
+            <div class="bg-slate-800/50 p-5 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="font-bold text-slate-400 text-lg flex items-center">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    Otros Repuestos (Ingreso Manual)
+                </h3>
+                <button onclick="addRow('tabla_rep')" class="text-[10px] bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 py-1.5 rounded-lg border border-slate-600 transition uppercase tracking-widest">+ Añadir Fila</button>
+            </div>
+            <table class="w-full text-left" id="tabla_rep">
+                <thead>
+                    <tr class="text-[10px] text-slate-500 border-b border-slate-700/50 uppercase tracking-widest">
+                        <th class="p-4 w-12 text-center">#</th>
+                        <th class="p-4">Descripción del Repuesto</th>
+                        <th class="p-4 w-40 text-right">Precio (S/.)</th>
+                        <th class="p-4 w-10"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/30"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal: Vincular Repuesto del Inventario -->
+<div id="modal_add_repuesto" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="glass border border-slate-700/50 max-w-md w-full p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200">
+        <h2 class="text-2xl font-bold text-white mb-2">Vincular Repuesto</h2>
+        <p class="text-slate-400 text-sm mb-6">Selecciona un ítem de tu stock real para esta unidad.</p>
+        
+        <form action="/ordenes/{{ orden.numero_orden }}/agregar_repuesto" method="post" class="space-y-5">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Buscar Producto</label>
+                <input type="text" list="lista_prod" id="inp_prod_busq" placeholder="Ej. Filtro de aire..." class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-emerald-500 transition" required>
+                <input type="hidden" name="producto_id" id="val_prod_id">
+                <datalist id="lista_prod">
+                    {% for p in productos %}
+                    <option data-id="{{ p.id }}" value="{{ p.nombre }} | {{ p.modelo or '-' }} (Stock: {{ p.stock }})"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Cantidad a utilizar</label>
+                <input type="number" name="cantidad" value="1" min="1" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-emerald-500 transition" required>
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="document.getElementById('modal_add_repuesto').classList.add('hidden')" class="px-6 py-3 text-slate-500 font-bold hover:text-white transition">Cancelar</button>
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition">Agregar y Descontar Stock</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Sincronizar Datalist del modal
+    document.getElementById('inp_prod_busq').addEventListener('input', function() {
+        const val = this.value;
+        const opts = document.getElementById('lista_prod').childNodes;
+        for (let i = 0; i < opts.length; i++) {
+            if (opts[i].value === val) {
+                document.getElementById('val_prod_id').value = opts[i].dataset.id;
+                break;
+            }
+        }
+    });
+
+    const initialMO = {{ (orden.trabajos_realizados or '[]') | tojson | safe }};
+    const initialRep = {{ (orden.repuestos_cambiados or '[]') | tojson | safe }};
+
+    window.onload = () => {
+        let moData = typeof initialMO === 'string' ? JSON.parse(initialMO) : initialMO;
+        let repData = typeof initialRep === 'string' ? JSON.parse(initialRep) : initialRep;
+
+        moData = Array.isArray(moData) ? moData : [];
+        repData = Array.isArray(repData) ? repData : [];
+
+        if (moData.length > 0) moData.forEach(item => addRow('tabla_mo', item.desc, item.price));
+        else addRow('tabla_mo');
+
+        if (repData.length > 0) repData.forEach(item => addRow('tabla_rep', item.desc, item.price));
+        else addRow('tabla_rep');
+    };
+
+    function addRow(tableId, desc = '', price = 0) {
+        const tbody = document.querySelector(`#${tableId} tbody`);
+        const rowCount = tbody.rows.length + 1;
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-700/20 transition group';
+        row.innerHTML = `
+            <td class="p-4 text-xs text-slate-600 text-center font-mono">${rowCount}</td>
+            <td class="p-4">
+                <input type="text" value="${desc}" class="w-full bg-transparent border-none outline-none text-sm text-slate-200 placeholder:text-slate-700 focus:bg-slate-800/50 rounded-lg p-2" placeholder="Escribir descripción...">
+            </td>
+            <td class="p-4">
+                <input type="number" step="0.01" value="${price}" oninput="updateTotals()" class="w-full bg-transparent border-none outline-none text-base text-blue-400 font-mono text-right focus:bg-slate-800/50 rounded-lg p-2" placeholder="0.00">
+            </td>
+            <td class="p-4 text-center">
+                <button onclick="this.parentElement.parentElement.remove(); updateTotals();" class="text-slate-700 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition p-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+        updateTotals();
+    }
+
+    function updateTotals() {
+        let totalMO = 0;
+        document.querySelectorAll('#tabla_mo tbody tr').forEach(tr => {
+            totalMO += parseFloat(tr.cells[2].querySelector('input').value) || 0;
+        });
+
+        let totalRepManual = 0;
+        document.querySelectorAll('#tabla_rep tbody tr').forEach(tr => {
+            totalRepManual += parseFloat(tr.cells[2].querySelector('input').value) || 0;
+        });
+
+        // Sumar también los repuestos ya vinculados (del backend)
+        let totalRepInv = {{ orden.repuestos_lista|sum(attribute='precio_unitario')|default(0) }};
+        // Ojo: el sum arriba no multiplica por cantidad. Mejor lo calculamos manual o ajustamos.
+        // Lo calcularemos aquí mismo sumando los subtotales de la tabla de arriba.
+        let totalRepInvReal = 0;
+        {% for item in orden.repuestos_lista %}
+        totalRepInvReal += {{ item.precio_unitario * item.cantidad }};
+        {% endfor %}
+
+        const totalGeneral = totalMO + totalRepManual + totalRepInvReal;
+        document.getElementById('total_general').innerText = totalGeneral.toFixed(2);
+    }
+
+    async function saveOrder() {
+        const works = [];
+        document.querySelectorAll('#tabla_mo tbody tr').forEach(tr => {
+            const desc = tr.cells[1].querySelector('input').value;
+            const price = parseFloat(tr.cells[2].querySelector('input').value) || 0;
+            if (desc) works.push({ desc, price });
+        });
+
+        const parts = [];
+        document.querySelectorAll('#tabla_rep tbody tr').forEach(tr => {
+            const desc = tr.cells[1].querySelector('input').value;
+            const price = parseFloat(tr.cells[2].querySelector('input').value) || 0;
+            if (desc) parts.push({ desc, price });
+        });
+
+        const totalMO = works.reduce((sum, i) => sum + i.price, 0);
+        const totalRepManual = parts.reduce((sum, i) => sum + i.price, 0);
+        
+        // El total repuestos total es manual + inventario
+        let totalRepInv = 0;
+        {% for item in orden.repuestos_lista %}
+        totalRepInv += {{ item.precio_unitario * item.cantidad }};
+        {% endfor %}
+
+        const totalRepTotal = totalRepManual + totalRepInv;
+        const totalGeneral = totalMO + totalRepTotal;
+
+        const formData = new FormData();
+        formData.append('trabajos', JSON.stringify(works));
+        formData.append('repuestos', JSON.stringify(parts));
+        formData.append('costo_mano_obra', totalMO);
+        formData.append('costo_repuestos', totalRepTotal);
+        formData.append('total_pagar', totalGeneral);
+        formData.append('metodo_pago', document.getElementById('metodo_pago').value);
+        formData.append('proximo_mantenimiento_km', document.getElementById('proximo_mantenimiento').value);
+
+        const res = await fetch(`/ordenes/{{ orden.numero_orden }}/actualizar`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            window.location.reload(); // Recargamos para refrescar la lista de repuestos vinculados
+        } else {
+            alert("Error al guardar");
+        }
+    }
+</script>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+</style>
+{% endblock %}
